@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+
+# Model files (large binary files)
+*.pth
+*.pt
+*.h5
+*.pkl
+*.pickle
+
+# Logs
+*.log
+logs/
+*.out
+
+# WandB
+wandb/
+
+# Data files
+*.csv
+*.json
+exhibition_results/
+exhibition_*/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Test outputs
+test_outputs/
+outputs/
+results/
+
+# NS3 build artifacts (if any copied here)
+build/
+.lock-*
+
+# Exhibition backup files
+*.backup
+*.bak

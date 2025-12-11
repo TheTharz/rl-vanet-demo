@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VANET RL Control - Exhibition Dashboard</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>🚗 VANET RL Control System</h1>
+                <p class="subtitle">Reinforcement Learning for Vehicular Ad-hoc Networks</p>
+            </div>
+            <div class="header-status">
+                <div id="connection-status" class="status-badge disconnected">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Disconnected</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Current Simulation Info -->
+        <section class="simulation-info">
+            <div class="info-card">
+                <h3>Current Simulation</h3>
+                <div id="current-sim-name" class="sim-name">No simulation running</div>
+                <div id="current-sim-step" class="sim-step">Step: 0 / 0</div>
+                <div class="progress-container">
+                    <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <div class="control-panel">
+                <h3>Controls</h3>
+                <div class="button-group">
+                    <button id="btn-cycle" class="btn btn-primary" disabled>
+                        ⏭️ Next Simulation
+                    </button>
+                    <button id="btn-stop" class="btn btn-danger" disabled>
+                        ⏹️ Stop
+                    </button>
+                </div>
+                <div class="toggle-group">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="toggle-auto-cycle">
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-text">Auto-cycle simulations (off by default)</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="quick-stats">
+                <h3>Latest Metrics</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">PDR</div>
+                        <div id="stat-pdr" class="stat-value">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Throughput</div>
+                        <div id="stat-throughput" class="stat-value">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">CBR</div>
+                        <div id="stat-cbr" class="stat-value">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">BeaconHz</div>
+                        <div id="stat-beaconhz" class="stat-value">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">TX Power</div>
+                        <div id="stat-txpower" class="stat-value">-</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts -->
+        <section class="charts-section">
+            <div class="chart-container">
+                <h3>Packet Delivery Ratio (PDR)</h3>
+                <canvas id="chart-pdr"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h3>Throughput (Mbps)</h3>
+                <canvas id="chart-throughput"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h3>Channel Busy Ratio (CBR)</h3>
+                <canvas id="chart-cbr"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h3>Beacon Frequency (Hz)</h3>
+                <canvas id="chart-beaconhz"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h3>TX Power (dBm)</h3>
+                <canvas id="chart-txpower"></canvas>
+            </div>
+
+            <div class="chart-container chart-wide">
+                <h3>Performance Comparison</h3>
+                <canvas id="chart-comparison"></canvas>
+            </div>
+        </section>
+
+        <!-- Simulation Queue -->
+        <section class="simulation-queue">
+            <h3>Simulation Queue</h3>
+            <div id="queue-list" class="queue-list">
+                <!-- Will be populated dynamically -->
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>NS3 VANET Simulation | RL Agents: PPO & DQN | Real-time Control System</p>
+            <p class="footer-tech">Built with Python, NS3 3.40, PyTorch, WebSocket</p>
+        </footer>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/static/js/charts.js"></script>
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
