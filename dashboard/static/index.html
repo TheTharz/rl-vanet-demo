@@ -21,6 +21,11 @@
             <div class="header-content">
                 <h1>🚗 VANET RL Control System</h1>
                 <p class="subtitle">Reinforcement Learning for Vehicular Ad-hoc Networks</p>
+                <div style="margin-top: 15px;">
+                    <a href="/static/vanet-demo.html" style="display: inline-block; background: rgba(255, 215, 0, 0.2); color: #ffd700; padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; border: 2px solid #ffd700; transition: all 0.3s ease;">
+                        📚 Learn How VANET Works (Interactive Demo)
+                    </a>
+                </div>
             </div>
             <div class="header-status">
                 <div id="connection-status" class="status-badge disconnected">
@@ -114,9 +119,19 @@
                 <canvas id="chart-txpower"></canvas>
             </div>
 
-            <div class="chart-container chart-wide">
-                <h3>Performance Comparison</h3>
-                <canvas id="chart-comparison"></canvas>
+            <div class="chart-container">
+                <h3>PDR Comparison</h3>
+                <canvas id="chart-comparison-pdr"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h3>Throughput Comparison</h3>
+                <canvas id="chart-comparison-throughput"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h3>CBR Comparison</h3>
+                <canvas id="chart-comparison-cbr"></canvas>
             </div>
         </section>
 

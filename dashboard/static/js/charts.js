@@ -183,33 +183,97 @@ class ChartsManager {
             options: commonOptions
         });
         
-        // Comparison Chart (Bar)
-        this.charts.comparison = new Chart(document.getElementById('chart-comparison'), {
+        // Comparison Charts (Bar)
+        const comparisonOptions = {
+            ...commonOptions,
+            plugins: {
+                ...commonOptions.plugins,
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        color: '#bdc3c7',
+                        font: {
+                            size: 14
+                        }
+                    }
+                }
+            },
+            scales: {
+                ...commonOptions.scales,
+                y: {
+                    ...commonOptions.scales.y,
+                    beginAtZero: true
+                }
+            }
+        };
+        
+        this.charts.comparisonPdr = new Chart(document.getElementById('chart-comparison-pdr'), {
             type: 'bar',
             data: {
-                labels: ['PDR', 'Throughput', 'CBR (inverted)'],
-                datasets: []
+                labels: ['PPO Agent', 'DQN Agent', 'Baseline (No RL)'],
+                datasets: [{
+                    label: 'PDR',
+                    data: [0, 0, 0],
+                    backgroundColor: ['#2ecc71', '#3498db', '#e74c3c'],
+                    borderColor: ['#27ae60', '#2980b9', '#c0392b'],
+                    borderWidth: 2
+                }]
             },
             options: {
-                ...commonOptions,
-                plugins: {
-                    ...commonOptions.plugins,
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: {
-                            color: '#bdc3c7',
-                            font: {
-                                size: 14
+                ...comparisonOptions,
+                scales: {
+                    ...comparisonOptions.scales,
+                    y: {
+                        ...comparisonOptions.scales.y,
+                        min: 0,
+                        max: 1,
+                        ticks: {
+                            ...comparisonOptions.scales.y.ticks,
+                            callback: function(value) {
+                                return (value * 100).toFixed(0) + '%';
                             }
                         }
                     }
-                },
+                }
+            }
+        });
+        
+        this.charts.comparisonThroughput = new Chart(document.getElementById('chart-comparison-throughput'), {
+            type: 'bar',
+            data: {
+                labels: ['PPO Agent', 'DQN Agent', 'Baseline (No RL)'],
+                datasets: [{
+                    label: 'Throughput (bps)',
+                    data: [0, 0, 0],
+                    backgroundColor: ['#2ecc71', '#3498db', '#e74c3c'],
+                    borderColor: ['#27ae60', '#2980b9', '#c0392b'],
+                    borderWidth: 2
+                }]
+            },
+            options: comparisonOptions
+        });
+        
+        this.charts.comparisonCbr = new Chart(document.getElementById('chart-comparison-cbr'), {
+            type: 'bar',
+            data: {
+                labels: ['PPO Agent', 'DQN Agent', 'Baseline (No RL)'],
+                datasets: [{
+                    label: 'CBR (inverted - higher is better)',
+                    data: [0, 0, 0],
+                    backgroundColor: ['#2ecc71', '#3498db', '#e74c3c'],
+                    borderColor: ['#27ae60', '#2980b9', '#c0392b'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                ...comparisonOptions,
                 scales: {
-                    ...commonOptions.scales,
+                    ...comparisonOptions.scales,
                     y: {
-                        ...commonOptions.scales.y,
-                        beginAtZero: true
+                        ...comparisonOptions.scales.y,
+                        min: 0,
+                        max: 1
                     }
                 }
             }
@@ -244,7 +308,7 @@ class ChartsManager {
     
     resetAllCharts() {
         Object.keys(this.charts).forEach(key => {
-            if (key !== 'comparison') {
+            if (!key.startsWith('comparison')) {
                 this.resetChart(key);
             }
         });
@@ -252,47 +316,51 @@ class ChartsManager {
     
     updateComparison(data) {
         // data = [{name: 'PPO', type: 'ppo', pdr: 0.95, throughput: 5.2, cbr: 0.3}, ...]
-        const chart = this.charts.comparison;
+        // Update each comparison chart separately
+        const ppoData = data.find(d => d.type === 'ppo') || {};
+        const dqnData = data.find(d => d.type === 'dqn') || {};
+        const baselineData = data.find(d => d.type === 'baseline') || {};
         
-        chart.data.datasets = data.map(sim => ({
-            label: sim.name,
-            data: [
-                sim.pdr || 0,
-                sim.throughput || 0,
-                (1 - (sim.cbr || 0)) // Invert CBR (lower is better)
-            ],
-            backgroundColor: this.colors[sim.type] || '#95a5a6',
-            borderColor: this.colors[sim.type] || '#7f8c8d',
-            borderWidth: 2
-        }));
+        // Update PDR comparison
+        this.charts.comparisonPdr.data.datasets[0].data = [
+            ppoData.pdr || 0,
+            dqnData.pdr || 0,
+            baselineData.pdr || 0
+        ];
+        this.charts.comparisonPdr.update();
         
-        chart.update();
+        // Update Throughput comparison
+        this.charts.comparisonThroughput.data.datasets[0].data = [
+            ppoData.throughput || 0,
+            dqnData.throughput || 0,
+            baselineData.throughput || 0
+        ];
+        this.charts.comparisonThroughput.update();
+        
+        // Update CBR comparison (inverted - lower CBR is better)
+        this.charts.comparisonCbr.data.datasets[0].data = [
+            1 - (ppoData.cbr || 0),
+            1 - (dqnData.cbr || 0),
+            1 - (baselineData.cbr || 0)
+        ];
+        this.charts.comparisonCbr.update();
     }
     
     addComparisonData(name, type, metrics) {
-        // Add or update a dataset in comparison chart
-        const chart = this.charts.comparison;
-        const existingIndex = chart.data.datasets.findIndex(ds => ds.label === name);
+        // Update comparison charts with data from completed simulation
+        const index = type === 'ppo' ? 0 : type === 'dqn' ? 1 : 2;
         
-        const dataset = {
-            label: name,
-            data: [
-                metrics.pdr || 0,
-                metrics.throughput || 0,
-                (1 - (metrics.cbr || 0))
-            ],
-            backgroundColor: this.colors[type] || '#95a5a6',
-            borderColor: this.colors[type] || '#7f8c8d',
-            borderWidth: 2
-        };
+        // Update PDR
+        this.charts.comparisonPdr.data.datasets[0].data[index] = metrics.pdr || 0;
+        this.charts.comparisonPdr.update();
         
-        if (existingIndex >= 0) {
-            chart.data.datasets[existingIndex] = dataset;
-        } else {
-            chart.data.datasets.push(dataset);
-        }
+        // Update Throughput
+        this.charts.comparisonThroughput.data.datasets[0].data[index] = metrics.throughput || 0;
+        this.charts.comparisonThroughput.update();
         
-        chart.update();
+        // Update CBR (inverted)
+        this.charts.comparisonCbr.data.datasets[0].data[index] = 1 - (metrics.cbr || 0);
+        this.charts.comparisonCbr.update();
     }
 }
 

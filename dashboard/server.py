@@ -76,6 +76,7 @@ class DashboardServer:
         self.current_step = 0
         self.metrics_queue = queue.Queue()
         self.auto_cycle = True
+        self.loop = None  # Store event loop reference
         
         # Configuration for cycling
         self.simulation_configs = [
@@ -234,15 +235,18 @@ class DashboardServer:
         })
         
         # Run simulation in background thread
-        loop = asyncio.get_event_loop()
-        loop.create_task(self._run_simulation_async(config))
+        # Store event loop for thread-safe emissions
+        self.loop = asyncio.get_event_loop()
+        self.loop.create_task(self._run_simulation_async(config))
     
     async def _run_simulation_async(self, config: SimulationConfig):
         """Run simulation in async context"""
         self.current_thread = None
         try:
             # Run in thread pool to avoid blocking
-            loop = asyncio.get_event_loop()
+            # Store event loop for thread-safe emissions
+            self.loop = asyncio.get_event_loop()
+            loop = self.loop
             
             # Store thread reference for stopping
             def run_with_thread_ref():
@@ -327,7 +331,7 @@ class DashboardServer:
                                     'config_name': config.name,
                                     'config_type': config.type
                                 }),
-                                asyncio.get_event_loop()
+                                self.loop
                             )
                             self.current_step = data['step']
                         last_len = current_len
@@ -346,7 +350,7 @@ class DashboardServer:
                             'config_name': config.name,
                             'config_type': config.type
                         }),
-                        asyncio.get_event_loop()
+                        self.loop
                     )
                 
                 return result
@@ -420,7 +424,7 @@ class DashboardServer:
                                     'config_name': config.name,
                                     'config_type': config.type
                                 }),
-                                asyncio.get_event_loop()
+                                self.loop
                             )
                             self.current_step = data['step']
                         last_len = current_len
@@ -439,7 +443,7 @@ class DashboardServer:
                             'config_name': config.name,
                             'config_type': config.type
                         }),
-                        asyncio.get_event_loop()
+                        self.loop
                     )
                 
                 return result
