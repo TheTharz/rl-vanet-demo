@@ -119,6 +119,7 @@ class DashboardServer:
         dashboard_dir = Path(__file__).parent
         self.app.router.add_static('/static', dashboard_dir / 'static', name='static')
         self.app.router.add_get('/', self.index_handler)
+        self.app.router.add_get('/live', self.live_handler)
         self.app.router.add_get('/api/status', self.status_handler)
         self.app.router.add_get('/api/configs', self.configs_handler)
         self.app.router.add_post('/api/start', self.start_handler)
@@ -180,6 +181,11 @@ class DashboardServer:
         """Serve index.html"""
         dashboard_dir = Path(__file__).parent
         return web.FileResponse(dashboard_dir / 'static' / 'index.html')
+
+    async def live_handler(self, request):
+        """Serve live-simulation.html"""
+        dashboard_dir = Path(__file__).parent
+        return web.FileResponse(dashboard_dir / 'static' / 'live-simulation.html')
     
     async def status_handler(self, request):
         """Get current status"""

@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RL-VANET Architecture - Interactive Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .nav-buttons {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .nav-btn {
+            background: #2c3e50;
+            border: 2px solid #34495e;
+            color: white;
+            padding: 12px 30px;
+            margin: 0 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .nav-btn:hover {
+            background: #34495e;
+            border-color: #3498db;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .architecture-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .canvas-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        #archCanvas {
+            display: block;
+            width: 100%;
+            border-radius: 10px;
+            background: #16213e;
+        }
+
+        .control-panel {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: #3498db;
+            border: none;
+            color: white;
+            padding: 18px 36px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .control-btn:hover {
+            background: #2980b9;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6);
+        }
+
+        .control-btn.active {
+            background: #27ae60;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .info-box {
+            background: rgba(52, 152, 219, 0.1);
+            border: 2px solid rgba(52, 152, 219, 0.3);
+            border-radius: 15px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .info-box:hover {
+            transform: translateY(-5px);
+            border-color: #3498db;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .info-box h3 {
+            color: #3498db;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+
+        .info-box.agent {
+            border-color: rgba(46, 204, 113, 0.3);
+        }
+
+        .info-box.agent:hover {
+            border-color: #2ecc71;
+        }
+
+        .info-box.agent h3 {
+            color: #2ecc71;
+        }
+
+        .info-box.zmq {
+            border-color: rgba(230, 126, 34, 0.3);
+        }
+
+        .info-box.zmq:hover {
+            border-color: #e67e22;
+        }
+
+        .info-box.zmq h3 {
+            color: #e67e22;
+        }
+
+        .info-box ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info-box ul li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-box ul li:before {
+            content: "→ ";
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        .info-box.agent ul li:before {
+            color: #2ecc71;
+        }
+
+        .info-box.zmq ul li:before {
+            color: #e67e22;
+        }
+
+        .status-display {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .status-line {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .status-line.state {
+            color: #3498db;
+        }
+
+        .status-line.action {
+            color: #2ecc71;
+        }
+
+        .status-line.reward {
+            color: #f39c12;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            margin-right: 15px;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes dataFlow {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: -20; }
+        }
+
+        .highlight {
+            animation: pulse 1s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 RL-VANET Architecture</h1>
+            <p>Interactive System Architecture Demo</p>
+        </header>
+
+        <div class="nav-buttons">
+            <a href="/" class="nav-btn">← Dashboard</a>
+            <a href="/static/vanet-demo.html" class="nav-btn">🚗 VANET Demo</a>
+        </div>
+
+        <div class="architecture-section">
+            <h2 style="text-align: center; margin-bottom: 30px; font-size: 36px; font-weight: bold;">System Architecture</h2>
+            
+            <div class="canvas-container">
+                <canvas id="archCanvas" width="1400" height="700"></canvas>
+            </div>
+
+            <div class="control-panel">
+                <button class="control-btn" id="btnAnimate" onclick="toggleAnimation()">▶️ Start Animation</button>
+                <button class="control-btn" onclick="showStateFlow()">📊 Show State Flow</button>
+                <button class="control-btn" onclick="showActionFlow()">🎮 Show Action Flow</button>
+                <button class="control-btn" onclick="resetDemo()">🔄 Reset</button>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3498db;"></div>
+                    <span>NS3 Simulation</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #e67e22;"></div>
+                    <span>ZeroMQ Tunnel</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #2ecc71;"></div>
+                    <span>RL Agent (PPO/DQN)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f39c12;"></div>
+                    <span>Data Flow</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('archCanvas');
+        const ctx = canvas.getContext('2d');
+        let isAnimating = false;
+        let animationFrame = null;
+        let dataPackets = [];
+        let time = 0;
+
+        // Component positions - optimized for larger canvas
+        const ns3Box = { x: 150, y: 250, width: 300, height: 220 };
+        const zmqBox = { x: 550, y: 250, width: 300, height: 220 };
+        const agentBox = { x: 950, y: 250, width: 300, height: 220 };
+
+        class DataPacket {
+            constructor(startX, startY, endX, endY, type, data) {
+                this.x = startX;
+                this.y = startY;
+                this.startX = startX;
+                this.startY = startY;
+                this.endX = endX;
+                this.endY = endY;
+                this.type = type; // 'state' or 'action'
+                this.data = data;
+                this.progress = 0;
+                this.speed = 0.01;
+                this.active = true;
+            }
+
+            update() {
+                this.progress += this.speed;
+                this.x = this.startX + (this.endX - this.startX) * this.progress;
+                this.y = this.startY + (this.endY - this.startY) * this.progress;
+
+                if (this.progress >= 1) {
+                    this.active = false;
+                    this.onComplete();
+                }
+            }
+
+            onComplete() {
+                const log = document.getElementById('statusLog');
+                const line = document.createElement('div');
+                line.className = `status-line ${this.type}`;
+                
+                if (this.type === 'state') {
+                    line.innerHTML = `[${new Date().toLocaleTimeString()}] State sent: PDR=${this.data.pdr.toFixed(3)}, CBR=${this.data.cbr.toFixed(3)}`;
+                } else if (this.type === 'action') {
+                    line.innerHTML = `[${new Date().toLocaleTimeString()}] Action received: BeaconHz=${this.data.beaconHz}, TxPower=${this.data.txPower}dBm`;
+                } else if (this.type === 'reward') {
+                    line.innerHTML = `[${new Date().toLocaleTimeString()}] Reward calculated: ${this.data.reward.toFixed(2)}`;
+                }
+
+                log.appendChild(line);
+                log.scrollTop = log.scrollHeight;
+
+                // Keep only last 20 messages
+                while (log.children.length > 20) {
+                    log.removeChild(log.firstChild);
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                // Glow effect - stronger
+                ctx.shadowBlur = 25;
+                ctx.shadowColor = this.type === 'state' ? '#3498db' : 
+                                  this.type === 'action' ? '#2ecc71' : '#f39c12';
+
+                // Packet - larger
+                ctx.fillStyle = this.type === 'state' ? '#3498db' : 
+                                this.type === 'action' ? '#2ecc71' : '#f39c12';
+                ctx.beginPath();
+                ctx.arc(0, 0, 12, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Label - larger and bolder
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.type.toUpperCase(), 0, -20);
+
+                ctx.restore();
+            }
+        }
+
+        function drawComponent(box, color, title, icon) {
+            // Box shadow
+            ctx.shadowBlur = 30;
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+            
+            // Main box with gradient
+            const gradient = ctx.createLinearGradient(box.x, box.y, box.x, box.y + box.height);
+            gradient.addColorStop(0, color);
+            gradient.addColorStop(1, color.replace('0.3', '0.5'));
+            ctx.fillStyle = gradient;
+            ctx.fillRect(box.x, box.y, box.width, box.height);
+            
+            ctx.shadowBlur = 0;
+            
+            // Border - thicker and brighter
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+            // Icon - larger
+            ctx.font = 'bold 56px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(icon, box.x + box.width / 2, box.y + 90);
+
+            // Title - larger and bolder
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 32px Arial';
+            ctx.fillText(title, box.x + box.width / 2, box.y + 150);
+        }
+
+        function drawConnection(startBox, endBox, bidirectional = false) {
+            const startX = startBox.x + startBox.width;
+            const startY = startBox.y + startBox.height / 2;
+            const endX = endBox.x;
+            const endY = endBox.y + endBox.height / 2;
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = 5;
+            ctx.setLineDash([15, 10]);
+            
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+            
+            ctx.setLineDash([]);
+
+            // Arrow - larger
+            const angle = Math.atan2(endY - startY, endX - startX);
+            const arrowX = endX - 10;
+            const arrowY = endY;
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.beginPath();
+            ctx.moveTo(arrowX, arrowY);
+            ctx.lineTo(arrowX - 20 * Math.cos(angle - Math.PI / 6), arrowY - 20 * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(arrowX - 20 * Math.cos(angle + Math.PI / 6), arrowY - 20 * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+
+            if (bidirectional) {
+                const backArrowX = startX + 10;
+                const backArrowY = startY;
+                const backAngle = angle + Math.PI;
+
+                ctx.beginPath();
+                ctx.moveTo(backArrowX, backArrowY);
+                ctx.lineTo(backArrowX - 20 * Math.cos(backAngle - Math.PI / 6), backArrowY - 20 * Math.sin(backAngle - Math.PI / 6));
+                ctx.lineTo(backArrowX - 20 * Math.cos(backAngle + Math.PI / 6), backArrowY - 20 * Math.sin(backAngle + Math.PI / 6));
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+
+        function drawDetails() {
+            // NS3 details - larger font
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('30 Vehicles', ns3Box.x + ns3Box.width / 2, ns3Box.y + 85);
+            ctx.fillText('VANET Scenario', ns3Box.x + ns3Box.width / 2, ns3Box.y + 110);
+            ctx.fillText('Port: 5555', ns3Box.x + ns3Box.width / 2, ns3Box.y + 135);
+
+            // ZeroMQ details
+            ctx.fillText('REQ-REP Pattern', zmqBox.x + zmqBox.width / 2, zmqBox.y + 85);
+            ctx.fillText('JSON Messages', zmqBox.x + zmqBox.width / 2, zmqBox.y + 110);
+            ctx.fillText('Bi-directional', zmqBox.x + zmqBox.width / 2, zmqBox.y + 135);
+
+            // Agent details
+            ctx.fillText('PPO / DQN', agentBox.x + agentBox.width / 2, agentBox.y + 85);
+            ctx.fillText('PyTorch Model', agentBox.x + agentBox.width / 2, agentBox.y + 110);
+            ctx.fillText('30 Actions', agentBox.x + agentBox.width / 2, agentBox.y + 135);
+        }
+
+        function drawScene() {
+            // Clear canvas
+            ctx.fillStyle = '#16213e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw connections
+            drawConnection(ns3Box, zmqBox, true);
+            drawConnection(zmqBox, agentBox, true);
+
+            // Draw components
+            drawComponent(ns3Box, 'rgba(52, 152, 219, 0.3)', 'NS3 Simulation', '🌐');
+            drawComponent(zmqBox, 'rgba(230, 126, 34, 0.3)', 'ZeroMQ', '🔌');
+            drawComponent(agentBox, 'rgba(46, 204, 113, 0.3)', 'RL Agent', '🧠');
+
+            // Draw details
+            drawDetails();
+
+            // Draw data packets
+            dataPackets = dataPackets.filter(p => p.active);
+            dataPackets.forEach(p => {
+                p.update();
+                p.draw();
+            });
+        }
+
+        function animate() {
+            drawScene();
+
+            if (isAnimating) {
+                time++;
+
+                // Send state every 180 frames (~3 seconds)
+                if (time % 180 === 0) {
+                    sendState();
+                }
+
+                animationFrame = requestAnimationFrame(animate);
+            }
+        }
+
+        function sendState() {
+            const stateData = {
+                pdr: 0.4 + Math.random() * 0.3,
+                cbr: 0.03 + Math.random() * 0.05
+            };
+
+            // NS3 -> ZMQ
+            dataPackets.push(new DataPacket(
+                ns3Box.x + ns3Box.width,
+                ns3Box.y + ns3Box.height / 2,
+                zmqBox.x,
+                zmqBox.y + zmqBox.height / 2,
+                'state',
+                stateData
+            ));
+
+            // ZMQ -> Agent (after delay)
+            setTimeout(() => {
+                dataPackets.push(new DataPacket(
+                    zmqBox.x + zmqBox.width,
+                    zmqBox.y + zmqBox.height / 2,
+                    agentBox.x,
+                    agentBox.y + agentBox.height / 2,
+                    'state',
+                    stateData
+                ));
+
+                // Agent decision and action back
+                setTimeout(() => sendAction(), 500);
+            }, 800);
+        }
+
+        function sendAction() {
+            const actionData = {
+                beaconHz: 4 + Math.floor(Math.random() * 9),
+                txPower: 15 + Math.floor(Math.random() * 16)
+            };
+
+            // Agent -> ZMQ
+            dataPackets.push(new DataPacket(
+                agentBox.x,
+                agentBox.y + agentBox.height / 2,
+                zmqBox.x + zmqBox.width,
+                zmqBox.y + zmqBox.height / 2,
+                'action',
+                actionData
+            ));
+
+            // ZMQ -> NS3
+            setTimeout(() => {
+                dataPackets.push(new DataPacket(
+                    zmqBox.x,
+                    zmqBox.y + zmqBox.height / 2,
+                    ns3Box.x + ns3Box.width,
+                    ns3Box.y + ns3Box.height / 2,
+                    'action',
+                    actionData
+                ));
+            }, 800);
+        }
+
+        function toggleAnimation() {
+            isAnimating = !isAnimating;
+            const btn = document.getElementById('btnAnimate');
+            
+            if (isAnimating) {
+                btn.textContent = '⏸️ Pause Animation';
+                btn.classList.add('active');
+                animate();
+            } else {
+                btn.textContent = '▶️ Resume Animation';
+                btn.classList.remove('active');
+                if (animationFrame) {
+                    cancelAnimationFrame(animationFrame);
+                }
+            }
+        }
+
+        function showStateFlow() {
+            sendState();
+        }
+
+        function showActionFlow() {
+            sendAction();
+        }
+
+        function resetDemo() {
+            isAnimating = false;
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+            }
+            const btn = document.getElementById('btnAnimate');
+            btn.textContent = '▶️ Start Animation';
+            btn.classList.remove('active');
+            
+            dataPackets = [];
+            time = 0;
+            
+            const log = document.getElementById('statusLog');
+            log.innerHTML = '<div class="status-line">System Reset. Ready to start...</div>';
+            
+            drawScene();
+        }
+
+        // Initial draw
+        drawScene();
+    </script>
+</body>
+</html>

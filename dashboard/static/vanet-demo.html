@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #1a1a2e;
             color: #fff;
             overflow-x: hidden;
         }
@@ -50,12 +50,12 @@
         }
 
         .nav-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: #2c3e50;
+            border: 2px solid #34495e;
             color: white;
             padding: 12px 30px;
             margin: 0 10px;
-            border-radius: 25px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 16px;
             transition: all 0.3s ease;
@@ -64,9 +64,10 @@
         }
 
         .nav-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: #34495e;
+            border-color: #3498db;
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         }
 
         .demo-section {
@@ -250,21 +251,22 @@
         }
 
         .action-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #3498db;
             border: none;
             color: white;
             padding: 15px 30px;
-            border-radius: 25px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 16px;
             font-weight: bold;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
         }
 
         .action-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
         }
 
         .action-btn:active {
@@ -340,49 +342,6 @@
             <button class="nav-btn" onclick="resetDemo()">🔄 Reset Demo</button>
         </div>
 
-        <!-- Introduction Section -->
-        <div class="demo-section">
-            <h2>What is a VANET?</h2>
-            <div class="explanation-box">
-                <h4>Vehicular Ad-hoc Network (VANET)</h4>
-                <p>A VANET is a specialized type of Mobile Ad-hoc Network (MANET) where vehicles communicate with each other (V2V) and with roadside infrastructure (V2I). This communication enables:</p>
-                <ul style="list-style-position: inside; margin-left: 20px;">
-                    <li>📡 Real-time traffic information sharing</li>
-                    <li>⚠️ Safety warnings (accidents, hazards)</li>
-                    <li>🚦 Smart traffic management</li>
-                    <li>🗺️ Cooperative navigation</li>
-                </ul>
-            </div>
-
-            <div class="info-grid">
-                <div class="info-card">
-                    <h3>🔑 Key Parameters</h3>
-                    <ul>
-                        <li><strong>Beacon Frequency (Hz):</strong> How often vehicles broadcast their status</li>
-                        <li><strong>TX Power (dBm):</strong> Transmission power affecting communication range</li>
-                    </ul>
-                </div>
-
-                <div class="info-card">
-                    <h3>📊 Performance Metrics</h3>
-                    <ul>
-                        <li><strong>PDR:</strong> Packet Delivery Ratio - success rate of message delivery</li>
-                        <li><strong>Throughput:</strong> Amount of data successfully transmitted</li>
-                        <li><strong>CBR:</strong> Channel Busy Ratio - network congestion level</li>
-                    </ul>
-                </div>
-
-                <div class="info-card">
-                    <h3>🎯 Optimization Goal</h3>
-                    <ul>
-                        <li><strong>High PDR:</strong> Reliable communication</li>
-                        <li><strong>High Throughput:</strong> Efficient data transfer</li>
-                        <li><strong>Low CBR:</strong> Reduced congestion</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
         <!-- Interactive Simulation -->
         <div class="demo-section">
             <h2>Interactive VANET Simulation</h2>
@@ -390,19 +349,27 @@
             <div class="legend">
                 <div class="legend-item">
                     <div class="legend-color" style="background: #3498db;"></div>
-                    <span>Vehicle</span>
+                    <span>Vehicle (V2V)</span>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-color" style="background: #2ecc71; opacity: 0.3;"></div>
-                    <span>Communication Range</span>
+                    <div class="legend-color" style="background: #34495e;"></div>
+                    <span>Ground Station (RSU)</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color" style="background: #ffd700;"></div>
-                    <span>Beacon Transmission</span>
+                    <span>V2V Broadcasting</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3498db;"></div>
+                    <span>RSU to Vehicle (V2I)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #2ecc71;"></div>
+                    <span>Success Packet</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color" style="background: #e74c3c;"></div>
-                    <span>Packet Loss</span>
+                    <span>Failed Packet</span>
                 </div>
             </div>
 
@@ -428,11 +395,6 @@
                         </label>
                         <input type="range" id="beaconSlider" min="2" max="20" value="8" step="1">
                     </div>
-                    <div class="explanation-box">
-                        <h4>Effect on Network</h4>
-                        <p><strong>Higher Frequency:</strong> More frequent updates, better awareness, but higher channel congestion</p>
-                        <p><strong>Lower Frequency:</strong> Less congestion, but delayed information and reduced safety</p>
-                    </div>
                 </div>
 
                 <div class="control-group">
@@ -442,11 +404,6 @@
                             TX Power: <span class="value-display" id="txPowerValue">23 dBm</span>
                         </label>
                         <input type="range" id="txPowerSlider" min="10" max="30" value="23" step="1">
-                    </div>
-                    <div class="explanation-box">
-                        <h4>Effect on Network</h4>
-                        <p><strong>Higher Power:</strong> Longer range, more neighbors, but increased interference</p>
-                        <p><strong>Lower Power:</strong> Less interference, but limited range and fewer connections</p>
                     </div>
                 </div>
             </div>
@@ -471,75 +428,154 @@
                 </div>
             </div>
         </div>
-
-        <!-- How RL Helps Section -->
-        <div class="demo-section">
-            <h2>🤖 How Reinforcement Learning Optimizes VANET</h2>
-            <div class="explanation-box">
-                <h4>The Challenge</h4>
-                <p>Finding the optimal balance between BeaconHz and TxPower is complex because:</p>
-                <ul style="list-style-position: inside; margin-left: 20px;">
-                    <li>Network conditions change dynamically (vehicle density, speed, environment)</li>
-                    <li>Trade-offs exist between reliability, throughput, and congestion</li>
-                    <li>Static configurations can't adapt to changing scenarios</li>
-                </ul>
-            </div>
-
-            <div class="explanation-box">
-                <h4>The RL Solution</h4>
-                <p>Our RL agents (PPO & DQN) learn to:</p>
-                <ul style="list-style-position: inside; margin-left: 20px;">
-                    <li>🎯 Observe network state (PDR, throughput, CBR, neighbors)</li>
-                    <li>🧠 Learn optimal policies through trial and error</li>
-                    <li>⚡ Adapt BeaconHz and TxPower in real-time</li>
-                    <li>📈 Maximize PDR and throughput while minimizing CBR</li>
-                </ul>
-            </div>
-
-            <div class="info-grid">
-                <div class="info-card">
-                    <h3>🎮 State Space</h3>
-                    <ul>
-                        <li>Current PDR</li>
-                        <li>Throughput</li>
-                        <li>CBR level</li>
-                        <li>Number of neighbors</li>
-                        <li>Current BeaconHz</li>
-                        <li>Current TxPower</li>
-                    </ul>
-                </div>
-
-                <div class="info-card">
-                    <h3>🎯 Action Space</h3>
-                    <ul>
-                        <li>BeaconHz: 4-12 Hz</li>
-                        <li>TxPower: 15-30 dBm</li>
-                        <li>30 possible combinations</li>
-                    </ul>
-                </div>
-
-                <div class="info-card">
-                    <h3>🏆 Reward Function</h3>
-                    <ul>
-                        <li>+Reward for high PDR</li>
-                        <li>+Reward for high throughput</li>
-                        <li>-Penalty for high CBR</li>
-                        <li>-Penalty for excessive power</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="action-buttons">
-                <a href="/" class="action-btn">🚀 See RL Agents in Action</a>
-            </div>
-        </div>
     </div>
 
     <script>
+        // Ground Station class (RSU - Roadside Unit)
+        class GroundStation {
+            constructor(x, y, name) {
+                this.x = x;
+                this.y = y;
+                this.name = name;
+                this.range = 300; // Fixed larger range
+                this.transmitting = false;
+                this.transmitTime = 0;
+                this.lastBeacon = 0;
+                this.beaconInterval = 1000; // 1 Hz
+                this.packets = [];
+            }
+
+            update(deltaTime) {
+                // Send periodic beacons
+                if (time - this.lastBeacon >= this.beaconInterval) {
+                    this.sendBeacon();
+                    this.lastBeacon = time;
+                }
+
+                // Update transmission animation
+                if (this.transmitting) {
+                    this.transmitTime += deltaTime;
+                    if (this.transmitTime > 300) {
+                        this.transmitting = false;
+                        this.transmitTime = 0;
+                    }
+                }
+
+                // Update packets
+                this.packets = this.packets.filter(packet => {
+                    packet.progress += deltaTime / packet.duration;
+                    return packet.progress < 1;
+                });
+            }
+
+            sendBeacon() {
+                this.transmitting = true;
+                this.transmitTime = 0;
+
+                // Find vehicles in range
+                const inRange = vehicles.filter(v => {
+                    const dist = Math.sqrt(Math.pow(v.x - this.x, 2) + Math.pow(v.y - this.y, 2));
+                    return dist <= this.range;
+                });
+
+                // Send packets to vehicles
+                inRange.forEach(vehicle => {
+                    const success = Math.random() > 0.1; // 90% success rate for RSU
+                    this.packets.push({
+                        target: vehicle,
+                        progress: 0,
+                        duration: 600,
+                        success: success
+                    });
+                });
+            }
+
+            draw() {
+                // Draw range circle
+                if (this.transmitting) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.range, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(52, 152, 219, 0.05)';
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(52, 152, 219, 0.3)';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Transmission wave
+                    const waveRadius = (this.transmitTime / 300) * this.range;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, waveRadius, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(52, 152, 219, ${1 - this.transmitTime / 300})`;
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
+
+                // Draw tower structure
+                ctx.fillStyle = '#34495e';
+                ctx.fillRect(this.x - 8, this.y - 30, 16, 30);
+                
+                // Tower top
+                ctx.beginPath();
+                ctx.moveTo(this.x - 15, this.y - 30);
+                ctx.lineTo(this.x, this.y - 45);
+                ctx.lineTo(this.x + 15, this.y - 30);
+                ctx.closePath();
+                ctx.fillStyle = this.transmitting ? '#3498db' : '#7f8c8d';
+                ctx.fill();
+
+                // Antenna
+                ctx.strokeStyle = '#ecf0f1';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y - 45);
+                ctx.lineTo(this.x, this.y - 60);
+                ctx.stroke();
+
+                // Antenna tip
+                ctx.beginPath();
+                ctx.arc(this.x, this.y - 60, 5, 0, Math.PI * 2);
+                ctx.fillStyle = this.transmitting ? '#e74c3c' : '#c0392b';
+                ctx.fill();
+
+                // Label
+                ctx.fillStyle = '#ecf0f1';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.name, this.x, this.y + 15);
+
+                // Draw packets
+                this.packets.forEach(packet => {
+                    const startX = this.x;
+                    const startY = this.y - 30;
+                    const endX = packet.target.x;
+                    const endY = packet.target.y;
+                    
+                    const currentX = startX + (endX - startX) * packet.progress;
+                    const currentY = startY + (endY - startY) * packet.progress;
+                    
+                    ctx.save();
+                    ctx.translate(currentX, currentY);
+                    
+                    // Packet with icon
+                    ctx.fillStyle = packet.success ? '#3498db' : '#e67e22';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = packet.success ? '#3498db' : '#e67e22';
+                    ctx.fill();
+                    
+                    ctx.restore();
+                });
+            }
+        }
+
         // Canvas and simulation variables
         const canvas = document.getElementById('vanetCanvas');
         const ctx = canvas.getContext('2d');
         let vehicles = [];
+        let groundStations = [];
         let isRunning = false;
         let animationId = null;
         let time = 0;
@@ -557,17 +593,22 @@
 
         // Vehicle class
         class Vehicle {
-            constructor(x, y, speed) {
+            constructor(x, y, speed, lane) {
                 this.x = x;
                 this.y = y;
+                this.lane = lane; // 0, 1, 2, or 3
                 this.speed = speed;
-                this.direction = Math.random() > 0.5 ? 1 : -1;
+                // Lanes 0 and 1 move right, lanes 2 and 3 move left
+                this.direction = lane < 2 ? 1 : -1;
                 this.lastBeacon = 0;
                 this.beaconInterval = 1000 / beaconHz;
                 this.transmitting = false;
                 this.transmitTime = 0;
                 this.neighbors = [];
-                this.color = '#3498db';
+                this.packets = []; // Array to store active packets
+                // Different colors for different lanes
+                const colors = ['#3498db', '#9b59b6', '#e74c3c', '#2ecc71'];
+                this.color = colors[lane];
             }
 
             update(deltaTime) {
@@ -598,6 +639,12 @@
                         this.transmitTime = 0;
                     }
                 }
+
+                // Update packets
+                this.packets = this.packets.filter(packet => {
+                    packet.progress += deltaTime / packet.duration;
+                    return packet.progress < 1;
+                });
             }
 
             sendBeacon() {
@@ -618,9 +665,18 @@
                 const actualPDR = Math.max(0, basePDR - cbrPenalty);
 
                 this.neighbors.forEach(neighbor => {
-                    if (Math.random() < actualPDR) {
+                    const success = Math.random() < actualPDR;
+                    if (success) {
                         totalPacketsReceived++;
                     }
+                    
+                    // Create visual packet
+                    this.packets.push({
+                        target: neighbor,
+                        progress: 0,
+                        duration: 500, // 500ms to reach target
+                        success: success
+                    });
                 });
 
                 // Update CBR
@@ -648,23 +704,39 @@
                     ctx.stroke();
                 }
 
-                // Draw vehicle
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, 15, 0, Math.PI * 2);
+                // Draw vehicle as a car shape
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                if (this.direction < 0) {
+                    ctx.scale(-1, 1);
+                }
+                
+                // Car body
                 ctx.fillStyle = this.transmitting ? '#ffd700' : this.color;
-                ctx.fill();
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                // Draw direction indicator
-                const arrowX = this.x + (this.direction * 20);
+                ctx.fillRect(-20, -8, 40, 16);
+                
+                // Car roof
+                ctx.fillStyle = this.transmitting ? '#f1c40f' : '#2c3e50';
+                ctx.fillRect(-12, -16, 24, 10);
+                
+                // Windows
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fillRect(-10, -14, 8, 6);
+                ctx.fillRect(2, -14, 8, 6);
+                
+                // Wheels
+                ctx.fillStyle = '#2c3e50';
                 ctx.beginPath();
-                ctx.moveTo(this.x, this.y);
-                ctx.lineTo(arrowX, this.y);
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2;
-                ctx.stroke();
+                ctx.arc(-12, 8, 4, 0, Math.PI * 2);
+                ctx.arc(12, 8, 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Headlights
+                ctx.fillStyle = this.transmitting ? '#fff' : '#f39c12';
+                ctx.fillRect(18, -4, 3, 3);
+                ctx.fillRect(18, 1, 3, 3);
+                
+                ctx.restore();
 
                 // Draw neighbor connections
                 if (this.transmitting) {
@@ -672,22 +744,57 @@
                         ctx.beginPath();
                         ctx.moveTo(this.x, this.y);
                         ctx.lineTo(neighbor.x, neighbor.y);
-                        ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+                        ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
                         ctx.lineWidth = 1;
                         ctx.stroke();
                     });
                 }
+
+                // Draw packets
+                this.packets.forEach(packet => {
+                    const startX = this.x;
+                    const startY = this.y;
+                    const endX = packet.target.x;
+                    const endY = packet.target.y;
+                    
+                    const currentX = startX + (endX - startX) * packet.progress;
+                    const currentY = startY + (endY - startY) * packet.progress;
+                    
+                    // Draw packet as a small square
+                    ctx.save();
+                    ctx.translate(currentX, currentY);
+                    ctx.rotate(Math.atan2(endY - startY, endX - startX));
+                    
+                    // Packet body
+                    ctx.fillStyle = packet.success ? '#2ecc71' : '#e74c3c';
+                    ctx.fillRect(-4, -3, 8, 6);
+                    
+                    // Packet glow
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = packet.success ? '#2ecc71' : '#e74c3c';
+                    ctx.fillRect(-4, -3, 8, 6);
+                    
+                    ctx.restore();
+                });
             }
         }
 
         // Initialize simulation
         function initSimulation() {
+            // Place vehicles in different lanes with varying speeds (lane centers: 110, 170, 230, 290)
             vehicles = [
-                new Vehicle(200, 200, 30),
-                new Vehicle(500, 200, 25),
-                new Vehicle(800, 200, 35),
-                new Vehicle(1000, 200, 28)
+                new Vehicle(200, 110, 25, 0),  // Lane 1 - Slow
+                new Vehicle(500, 170, 40, 1),  // Lane 2 - Fast
+                new Vehicle(800, 230, 30, 2),  // Lane 3 - Medium
+                new Vehicle(1000, 290, 35, 3)  // Lane 4 - Medium-Fast
             ];
+
+            // Place ground stations (RSUs) on both sides of the road
+            groundStations = [
+                new GroundStation(400, 40, 'RSU-1'),   // Left side, top
+                new GroundStation(800, 360, 'RSU-2')   // Right side, bottom
+            ];
+            
             resetMetrics();
         }
 
@@ -723,17 +830,39 @@
             ctx.fillStyle = 'linear-gradient(to bottom, #1a1a2e, #16213e)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Draw road
+            // Draw road with 4 lanes
             ctx.fillStyle = '#2c3e50';
-            ctx.fillRect(0, 150, canvas.width, 100);
+            ctx.fillRect(0, 80, canvas.width, 240);
+            
+            // Draw lane dividers
             ctx.strokeStyle = '#f39c12';
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 2;
             ctx.setLineDash([20, 10]);
-            ctx.beginPath();
-            ctx.moveTo(0, 200);
-            ctx.lineTo(canvas.width, 200);
-            ctx.stroke();
+            
+            // Lane dividers (3 dividers for 4 lanes)
+            for (let i = 1; i <= 3; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, 80 + (i * 60));
+                ctx.lineTo(canvas.width, 80 + (i * 60));
+                ctx.stroke();
+            }
+            
+            // Road edges
             ctx.setLineDash([]);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, 80);
+            ctx.lineTo(canvas.width, 80);
+            ctx.moveTo(0, 320);
+            ctx.lineTo(canvas.width, 320);
+            ctx.stroke();
+
+            // Update and draw ground stations
+            groundStations.forEach(gs => {
+                gs.update(deltaTime);
+                gs.draw();
+            });
 
             // Update and draw vehicles
             vehicles.forEach(v => {
@@ -801,10 +930,12 @@
         }
 
         function addVehicle() {
-            if (vehicles.length < 10) {
+            if (vehicles.length < 16) {
                 const x = Math.random() * canvas.width;
-                const speed = 20 + Math.random() * 20;
-                vehicles.push(new Vehicle(x, 200, speed));
+                const speed = 20 + Math.random() * 30; // Wider speed range (20-50)
+                const lane = Math.floor(Math.random() * 4); // Random lane 0-3
+                const laneY = 110 + (lane * 60); // Lane centers
+                vehicles.push(new Vehicle(x, laneY, speed, lane));
             }
         }
 
@@ -837,7 +968,21 @@
         ctx.fillStyle = '#1a1a2e';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#2c3e50';
-        ctx.fillRect(0, 150, canvas.width, 100);
+        ctx.fillRect(0, 80, canvas.width, 240);
+        
+        // Draw lane dividers
+        ctx.strokeStyle = '#f39c12';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([20, 10]);
+        for (let i = 1; i <= 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(0, 80 + (i * 60));
+            ctx.lineTo(canvas.width, 80 + (i * 60));
+            ctx.stroke();
+        }
+        ctx.setLineDash([]);
+        
+        groundStations.forEach(gs => gs.draw());
         vehicles.forEach(v => v.draw());
     </script>
 </body>

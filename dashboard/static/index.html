@@ -1,19 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VANET RL Control - Exhibition Dashboard</title>
-    
+
     <!-- CSS -->
     <link rel="stylesheet" href="/static/css/styles.css">
-    
+
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    
+
     <!-- Socket.IO -->
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
+
 <body>
     <div class="container">
         <!-- Header -->
@@ -22,8 +24,17 @@
                 <h1>🚗 VANET RL Control System</h1>
                 <p class="subtitle">Reinforcement Learning for Vehicular Ad-hoc Networks</p>
                 <div style="margin-top: 15px;">
-                    <a href="/static/vanet-demo.html" style="display: inline-block; background: rgba(255, 215, 0, 0.2); color: #ffd700; padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; border: 2px solid #ffd700; transition: all 0.3s ease;">
-                        📚 Learn How VANET Works (Interactive Demo)
+                    <a href="/static/vanet-demo.html"
+                        style="display: inline-block; background: rgba(255, 215, 0, 0.2); color: #ffd700; padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; border: 2px solid #ffd700; transition: all 0.3s ease; margin: 5px;">
+                        📚 Learn How VANET Works
+                    </a>
+                    <a href="/static/rl-architecture.html"
+                        style="display: inline-block; background: rgba(46, 204, 113, 0.2); color: #2ecc71; padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; border: 2px solid #2ecc71; transition: all 0.3s ease; margin: 5px;">
+                        🤖 See RL Architecture
+                    </a>
+                    <a href="/live"
+                        style="display: inline-block; background: rgba(52, 152, 219, 0.2); color: #3498db; padding: 10px 20px; border-radius: 25px; text-decoration: none; font-weight: bold; border: 2px solid #3498db; transition: all 0.3s ease; margin: 5px;">
+                        📺 Live Visualization
                     </a>
                 </div>
             </div>
@@ -45,7 +56,7 @@
                     <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
                 </div>
             </div>
-            
+
             <div class="control-panel">
                 <h3>Controls</h3>
                 <div class="button-group">
@@ -98,22 +109,22 @@
                 <h3>Packet Delivery Ratio (PDR)</h3>
                 <canvas id="chart-pdr"></canvas>
             </div>
-            
+
             <div class="chart-container">
                 <h3>Throughput (Mbps)</h3>
                 <canvas id="chart-throughput"></canvas>
             </div>
-            
+
             <div class="chart-container">
                 <h3>Channel Busy Ratio (CBR)</h3>
                 <canvas id="chart-cbr"></canvas>
             </div>
-            
+
             <div class="chart-container">
                 <h3>Beacon Frequency (Hz)</h3>
                 <canvas id="chart-beaconhz"></canvas>
             </div>
-            
+
             <div class="chart-container">
                 <h3>TX Power (dBm)</h3>
                 <canvas id="chart-txpower"></canvas>
@@ -123,12 +134,12 @@
                 <h3>PDR Comparison</h3>
                 <canvas id="chart-comparison-pdr"></canvas>
             </div>
-            
+
             <div class="chart-container">
                 <h3>Throughput Comparison</h3>
                 <canvas id="chart-comparison-throughput"></canvas>
             </div>
-            
+
             <div class="chart-container">
                 <h3>CBR Comparison</h3>
                 <canvas id="chart-comparison-cbr"></canvas>
@@ -154,4 +165,5 @@
     <script src="/static/js/charts.js"></script>
     <script src="/static/js/dashboard.js"></script>
 </body>
+
 </html>

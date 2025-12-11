@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live VANET Simulation - Real-time Visualization</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        /* Additional styles for the live simulation */
+        .live-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .canvas-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #vanetCanvas {
+            display: block;
+            width: 100%;
+            border-radius: 10px;
+            background: linear-gradient(to bottom, #1a1a2e 0%, #16213e 100%);
+        }
+
+        .metrics-overlay {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .metric-card {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .metric-card.active {
+            border-color: #ffd700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+        }
+
+        .metric-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #ffd700;
+            margin: 5px 0;
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .control-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .status-badge.connected {
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+            border: 1px solid #2ecc71;
+        }
+
+        .status-badge.disconnected {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+            border: 1px solid #e74c3c;
+        }
+
+        .agent-info {
+            font-size: 1.2em;
+            color: #fff;
+        }
+
+        .agent-type {
+            color: #3498db;
+            font-weight: bold;
+        }
+    </style>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+
+<body>
+    <div class="live-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>🚗 Live VANET Simulation</h1>
+                <p class="subtitle">Real-time Visualization of RL Agent Control</p>
+            </div>
+            <div class="header-actions">
+                <a href="/" class="btn btn-secondary">← Back to Dashboard</a>
+            </div>
+        </header>
+
+        <!-- Control Bar -->
+        <div class="control-bar">
+            <div class="agent-info">
+                Current Agent: <span id="agent-type" class="agent-type">Waiting...</span>
+            </div>
+            <div id="connection-status" class="status-badge disconnected">
+                <span class="status-dot">●</span>&nbsp;Disconnected
+            </div>
+        </div>
+
+        <!-- Visualization Canvas -->
+        <div class="canvas-container">
+            <canvas id="vanetCanvas" width="1200" height="400"></canvas>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3498db;"></div>
+                    <span>Vehicle</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #34495e;"></div>
+                    <span>RSU</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: rgba(46, 204, 113, 0.3); border: 1px solid #2ecc71;">
+                    </div>
+                    <span>Comm Range</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffd700;"></div>
+                    <span>Active Transmission</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-time Metrics -->
+        <div class="metrics-overlay">
+            <div class="metric-card active">
+                <div class="metric-label">Beacon Frequency</div>
+                <div class="metric-value" id="val-beacon">-- Hz</div>
+                <div class="metric-label">Agent Action</div>
+            </div>
+            <div class="metric-card active">
+                <div class="metric-label">Transmission Power</div>
+                <div class="metric-value" id="val-txpower">-- dBm</div>
+                <div class="metric-label">Agent Action</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Packet Delivery Ratio</div>
+                <div class="metric-value" id="val-pdr">--%</div>
+                <div class="metric-label">Safety Metric</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Throughput</div>
+                <div class="metric-value" id="val-throughput">-- Mbps</div>
+                <div class="metric-label">Network Performance</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Avg Neighbors</div>
+                <div class="metric-value" id="val-neighbors">--</div>
+                <div class="metric-label">Density</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Channel Busy Ratio</div>
+                <div class="metric-value" id="val-cbr">--</div>
+                <div class="metric-label">Congestion</div>
+            </div>
+            <div class="metric-card" style="border-color: #9b59b6;">
+                <div class="metric-label">Current Reward</div>
+                <div class="metric-value" id="val-reward" style="color: #9b59b6;">--</div>
+                <div class="metric-label">RL Feedback</div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <section class="charts-section" style="margin-top: 30px;">
+            <div class="chart-container">
+                <h3>Agent Actions (TxPower & BeaconHz)</h3>
+                <canvas id="chart-actions"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Network Performance (PDR & CBR)</h3>
+                <canvas id="chart-performance"></canvas>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // --- Visualization Logic ---
+        const canvas = document.getElementById('vanetCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // State
+        let vehicles = [];
+        let rsus = [];
+        let currentTime = 0;
+        let lastFrameTime = 0;
+
+        // Simulation Parameters (Driven by Server)
+        let currentBeaconHz = 10;
+        let currentTxPower = 20;
+        let currentRange = 200; // Calculated from TxPower
+
+        // Assets
+        class Vehicle {
+            constructor(x, y, speed, lane) {
+                this.x = x;
+                this.y = y;
+                this.speed = speed;
+                this.lane = lane;
+                // All lanes move East (Left to Right) as per C++ script (MeanDirection=0)
+                this.direction = 1;
+                this.color = ['#3498db', '#9b59b6', '#e74c3c', '#2ecc71'][lane];
+                this.lastBeaconTime = 0;
+                this.transmitting = false;
+                this.transmitProgress = 0;
+            }
+
+            update(dt) {
+                // Move
+                this.x += this.speed * this.direction * dt;
+
+                // Wrap
+                if (this.x > canvas.width + 50) this.x = -50;
+                if (this.x < -50) this.x = canvas.width + 50;
+
+                // Simulate Beacon Transmission based on currentBeaconHz
+                const interval = 1000 / currentBeaconHz; // ms
+                if (currentTime - this.lastBeaconTime > interval) {
+                    this.transmitting = true;
+                    this.transmitProgress = 0;
+                    this.lastBeaconTime = currentTime;
+                }
+
+                if (this.transmitting) {
+                    this.transmitProgress += dt / 200; // 200ms animation
+                    if (this.transmitProgress >= 1) {
+                        this.transmitting = false;
+                    }
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                // No scaling needed for direction since all move right
+
+                // Range Circle (if transmitting)
+                if (this.transmitting) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(0, 0, currentRange, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(46, 204, 113, ${0.1 * (1 - this.transmitProgress)})`;
+                    ctx.fill();
+                    ctx.strokeStyle = `rgba(46, 204, 113, ${0.3 * (1 - this.transmitProgress)})`;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // Car Body
+                ctx.fillStyle = this.color;
+                ctx.fillRect(-20, -8, 40, 16);
+                ctx.fillStyle = '#2c3e50'; // Roof
+                ctx.fillRect(-12, -16, 24, 10);
+
+                // Wheels
+                ctx.beginPath();
+                ctx.arc(-12, 8, 4, 0, Math.PI * 2);
+                ctx.arc(12, 8, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Headlights (Right side)
+                ctx.fillStyle = '#f1c40f';
+                ctx.beginPath();
+                ctx.moveTo(20, -6);
+                ctx.lineTo(35, -15);
+                ctx.lineTo(35, 5);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        class RSU {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+            }
+
+            draw(ctx) {
+                ctx.fillStyle = '#34495e';
+                ctx.fillRect(this.x - 5, this.y - 30, 10, 30);
+                ctx.beginPath();
+                ctx.arc(this.x, this.y - 30, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#e74c3c';
+                ctx.fill();
+            }
+        }
+
+        function initSim() {
+            // Create 4 lanes of vehicles moving East
+            // Lanes at Y: 140, 180, 220, 260
+            const laneY = [140, 180, 220, 260];
+
+            for (let i = 0; i < 4; i++) { // 4 vehicles per lane
+                vehicles.push(new Vehicle(100 + i * 250, laneY[0], 50 + Math.random() * 20, 0));
+                vehicles.push(new Vehicle(200 + i * 250, laneY[1], 60 + Math.random() * 20, 1));
+                vehicles.push(new Vehicle(150 + i * 250, laneY[2], 55 + Math.random() * 20, 2));
+                vehicles.push(new Vehicle(50 + i * 250, laneY[3], 65 + Math.random() * 20, 3));
+            }
+
+            rsus.push(new RSU(400, 50));
+            rsus.push(new RSU(800, 350));
+        }
+
+        function animate(timestamp) {
+            if (!lastFrameTime) lastFrameTime = timestamp;
+            const dt = (timestamp - lastFrameTime) / 1000; // seconds
+            lastFrameTime = timestamp;
+            currentTime += dt * 1000; // ms
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Road (4 Lanes)
+            ctx.fillStyle = '#34495e';
+            ctx.fillRect(0, 120, canvas.width, 160); // 4 lanes * 40px
+
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+
+            // Lane markings
+            ctx.setLineDash([20, 20]);
+            for (let i = 1; i < 4; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, 120 + i * 40);
+                ctx.lineTo(canvas.width, 120 + i * 40);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+
+            // Road borders
+            ctx.strokeStyle = '#f1c40f';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, 120);
+            ctx.lineTo(canvas.width, 120);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(0, 280);
+            ctx.lineTo(canvas.width, 280);
+            ctx.stroke();
+
+            // Update & Draw Vehicles
+            vehicles.forEach(v => {
+                v.update(dt * 50); // Speed multiplier
+                v.draw(ctx);
+            });
+
+            // Draw RSUs
+            rsus.forEach(r => r.draw(ctx));
+
+            requestAnimationFrame(animate);
+        }
+
+        initSim();
+        requestAnimationFrame(animate);
+
+
+        // --- Socket.IO & Data Logic ---
+        const socket = io();
+
+        // Charts
+        const actionChartCtx = document.getElementById('chart-actions').getContext('2d');
+        const perfChartCtx = document.getElementById('chart-performance').getContext('2d');
+
+        const actionChart = new Chart(actionChartCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Beacon Hz',
+                    data: [],
+                    borderColor: '#ffd700',
+                    yAxisID: 'y'
+                }, {
+                    label: 'Tx Power (dBm)',
+                    data: [],
+                    borderColor: '#e74c3c',
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                responsive: true,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Hz' } },
+                    y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'dBm' }, grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+
+        const perfChart = new Chart(perfChartCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'PDR (%)',
+                    data: [],
+                    borderColor: '#2ecc71',
+                    tension: 0.4,
+                    yAxisID: 'y'
+                }, {
+                    label: 'CBR',
+                    data: [],
+                    borderColor: '#3498db',
+                    tension: 0.4,
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                responsive: true,
+                interaction: { mode: 'index', intersect: false },
+                scales: {
+                    y: { beginAtZero: true, max: 100, title: { display: true, text: 'PDR %' } },
+                    y1: { beginAtZero: true, max: 1.0, position: 'right', title: { display: true, text: 'CBR' }, grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+
+        // Socket Events
+        socket.on('connect', () => {
+            document.getElementById('connection-status').className = 'status-badge connected';
+            document.getElementById('connection-status').innerHTML = '<span class="status-dot">●</span>&nbsp;Connected';
+        });
+
+        socket.on('disconnect', () => {
+            document.getElementById('connection-status').className = 'status-badge disconnected';
+            document.getElementById('connection-status').innerHTML = '<span class="status-dot">●</span>&nbsp;Disconnected';
+        });
+
+        socket.on('simulation_started', (data) => {
+            document.getElementById('agent-type').textContent = data.config.name;
+            // Reset charts
+            actionChart.data.labels = [];
+            actionChart.data.datasets.forEach(d => d.data = []);
+            actionChart.update();
+            perfChart.data.labels = [];
+            perfChart.data.datasets.forEach(d => d.data = []);
+            perfChart.update();
+        });
+
+        socket.on('metrics_update', (data) => {
+            // Update UI Values
+            document.getElementById('val-beacon').textContent = data.beaconHz.toFixed(1) + ' Hz';
+            document.getElementById('val-txpower').textContent = data.txPower.toFixed(1) + ' dBm';
+            document.getElementById('val-pdr').textContent = (data.pdr * 100).toFixed(1) + '%';
+            document.getElementById('val-throughput').textContent = (data.throughput / 1e6).toFixed(2) + ' Mbps';
+            document.getElementById('val-neighbors').textContent = data.neighbors ? data.neighbors.toFixed(1) : '--';
+            document.getElementById('val-cbr').textContent = data.cbr.toFixed(3);
+            document.getElementById('val-reward').textContent = data.reward ? data.reward.toFixed(2) : '--';
+
+            // Update Simulation Params
+            currentBeaconHz = data.beaconHz;
+            currentTxPower = data.txPower;
+            // Approximate range calculation for visual effect: 
+            // 10dBm -> 50px, 30dBm -> 300px (Canvas pixels)
+            // Real range is 300m. Let's assume canvas width 1200px = 1000m? 
+            // Then 300m = 360px.
+            // Let's map 10dBm to 100px and 30dBm to 400px
+            currentRange = 100 + (currentTxPower - 10) * 15;
+
+            // Update Charts
+            const label = `Step ${data.step}`;
+
+            // Limit chart history to 50 points
+            if (actionChart.data.labels.length > 50) {
+                actionChart.data.labels.shift();
+                actionChart.data.datasets.forEach(d => d.data.shift());
+                perfChart.data.labels.shift();
+                perfChart.data.datasets.forEach(d => d.data.shift());
+            }
+
+            actionChart.data.labels.push(label);
+            actionChart.data.datasets[0].data.push(data.beaconHz);
+            actionChart.data.datasets[1].data.push(data.txPower);
+            actionChart.update('none'); // 'none' for performance
+
+            perfChart.data.labels.push(label);
+            perfChart.data.datasets[0].data.push(data.pdr * 100);
+            perfChart.data.datasets[1].data.push(data.cbr);
+            perfChart.update('none');
+        });
+
+    </script>
+</body>
+
+</html>
