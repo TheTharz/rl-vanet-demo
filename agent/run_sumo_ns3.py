@@ -8,6 +8,13 @@ import traci
 import subprocess
 import threading
 import argparse
+import torch
+
+# Import the PPO Agent
+# Ensure the agent directory is in the path if needed, but since we are in the same dir it should work
+# if running from project root, we might need to adjust sys.path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from ppo_dual_continuous import DualControlPPOAgent
 
 # Configuration
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -15,6 +22,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SUMO_CONFIG = os.path.join(BASE_DIR, "../2025-12-12-09-33-54/osm.sumocfg")
 NS3_DIR = "/home/tharindu/tarballs/ns-allinone-3.44/ns-3.44"
 ZMQ_PORT = 5555
+MODEL_PATH = os.path.join(BASE_DIR, "models/ppo_dual_final_20251116_194131.pth")
 
 def run_ns3():
     """Run NS-3 simulation in a separate thread"""
@@ -34,6 +42,15 @@ def main():
     parser.add_argument("--gui", action="store_true", help="Run SUMO with GUI")
     args = parser.parse_args()
 
+    # 0. Initialize PPO Agent (Inference Mode)
+    print(f"[Orchestrator] Loading PPO Agent from {MODEL_PATH}...")
+    agent = DualControlPPOAgent()
+    if os.path.exists(MODEL_PATH):
+        agent.load_model(MODEL_PATH)
+        print("[Orchestrator] Model loaded successfully!")
+    else:
+        print(f"[Orchestrator] WARNING: Model not found at {MODEL_PATH}. Using random initialization.")
+
     # 1. Start SUMO
     sumo_cmd = ["sumo-gui" if args.gui else "sumo", "-c", SUMO_CONFIG, "--start"]
     traci.start(sumo_cmd)
@@ -45,9 +62,7 @@ def main():
     socket.bind(f"tcp://*:{ZMQ_PORT}")
     print(f"[Orchestrator] ZMQ Server bound to port {ZMQ_PORT}")
 
-    # 3. Start NS-3 (Manual start required by user for now, or automated)
-    # For this demo, we assume user copies files and runs NS-3 manually or we automate it.
-    # Let's automate it assuming files are in place.
+    # 3. Start NS-3
     ns3_thread = threading.Thread(target=run_ns3)
     ns3_thread.start()
 
@@ -55,17 +70,11 @@ def main():
     try:
         while True:
             # Wait for request from NS-3
-            # NS-3 sends:
-            # 1. "get_positions" -> We step SUMO, get positions, send back
-            # 2. "state" -> We receive metrics, send "ack" (or action)
-            # 3. "reward" -> We receive reward, send "ack"
-            
             msg = socket.recv()
             try:
                 data = json.loads(msg.decode())
                 msg_type = data.get("type")
             except:
-                # Raw string check if JSON fails (legacy)
                 msg_type = "unknown"
                 print(f"Received raw: {msg}")
 
@@ -90,27 +99,45 @@ def main():
                             main.veh_map[veh_id] = main.next_id
                             main.next_id += 1
                 
-                # Collect positions for mapped vehicles
+                # Build position dict
                 for veh_id in active_ids:
                     if veh_id in main.veh_map:
-                        ns3_id = str(main.veh_map[veh_id])
                         x, y = traci.vehicle.getPosition(veh_id)
-                        positions[ns3_id] = [x, y]
+                        ns3_id = main.veh_map[veh_id]
+                        positions[str(ns3_id)] = [x, y]
                 
-                response = {"positions": positions}
-                
-                # Send back
+                # Debug: Print active vehicle count
+                if step % 100 == 0:
+                    print(f"[Orchestrator] Step {step}: SUMO Vehicles={len(active_ids)}, Mapped to NS-3={len(positions)}")
+
+                response = {
+                    "type": "positions",
+                    "positions": positions
+                }
                 socket.send_string(json.dumps(response))
                 step += 1
 
             elif msg_type == "state":
-                # print(f"State: {data['data']}")
-                # Send Action (Dummy for now)
-                action = {"action": {"beaconHz": 10, "txPower": 20}}
-                socket.send_string(json.dumps(action))
+                state_data = data.get("data", {})
+                
+                # Normalize state for agent
+                normalized_state = agent.normalize_state(state_data)
+                
+                # Select Action using PPO Agent (Inference Mode: training=False)
+                action_idx, _, _ = agent.select_action(normalized_state, training=False)
+                action_params = agent.get_action_params(action_idx)
+                
+                print(f"[Step {step}] State: PDR={state_data.get('PDR',0):.2f} | "
+                      f"Action: Beacon={action_params['beaconHz']}Hz, Tx={action_params['txPower']}dBm")
+
+                # Send Action to NS-3
+                response = {"action": action_params}
+                socket.send_string(json.dumps(response))
 
             elif msg_type == "reward":
-                # print(f"Reward: {data['reward']}")
+                reward = data.get("reward", 0.0)
+                # print(f"Reward: {reward}")
+                # In inference mode, we don't update the agent
                 socket.send_string("ack")
 
             else:

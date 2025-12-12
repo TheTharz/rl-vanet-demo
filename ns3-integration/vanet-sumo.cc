@@ -12,6 +12,7 @@
 #include "ns3/wifi-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/applications-module.h"
+#include "ns3/phy-entity.h" // Required for RxPowerWattPerChannelBand
 #include "rl-interface.h"
 #include <iostream>
 #include <iomanip>
@@ -62,6 +63,37 @@ const uint32_t MAX_NODES = 100;
 // Forward declarations
 void UpdateBeaconInterval(double newInterval);
 void UpdateTxPower(double newPower);
+
+// Global counters for debugging
+uint32_t g_debugPhyTx = 0;
+uint32_t g_debugPhyRx = 0;
+uint32_t g_debugPhyRxBegin = 0;
+uint32_t g_debugPhyDrop = 0;
+
+// Trace Callbacks
+void PhyTxBeginCallback(std::string context, Ptr<const Packet> packet, double txPowerW) {
+    g_debugPhyTx++;
+}
+
+
+void PhyRxBeginCallback(std::string context, Ptr<const Packet> packet, RxPowerWattPerChannelBand rxPowers) {
+    g_debugPhyRxBegin++;
+}
+
+void PhyRxEndCallback(std::string context, Ptr<const Packet> packet) {
+    g_debugPhyRx++;
+}
+
+void PhyRxDropCallback(std::string context, Ptr<const Packet> packet, WifiPhyRxfailureReason reason) {
+    g_debugPhyDrop++;
+    /*if (g_debugPhyDrop % 100 == 0) { // Limit output frequency
+        std::cout << "PHY DROP Reason: " << reason << std::endl;
+    }*/
+}
+
+void MacRxDropCallback(std::string context, Ptr<const Packet> packet) {
+    std::cout << "MAC DROP" << std::endl;
+}
 
 // Packet callbacks (same as before)
 // Helper: Update expected receptions based on neighbors in range
@@ -147,6 +179,44 @@ double CalculateCBR(Ptr<Node> node) {
     double cbr = std::min(1.0, numNeighbors * beaconHz * packetDuration);
     g_lastChannelSampleTime[nodeId] = currentTime;
     return cbr;
+}
+
+// Helper: Update Beacon Interval (Frequency)
+void UpdateBeaconInterval(double newInterval) {
+    if (std::abs(g_beaconInterval - newInterval) < 0.001) return;
+    g_beaconInterval = newInterval;
+    
+    // Update OnOff Applications
+    // OnTime is fixed (packet duration), OffTime determines frequency
+    // Frequency = 1 / (OnTime + OffTime)
+    // OffTime = (1 / Frequency) - OnTime
+    
+    // Assuming packet size 200 bytes @ 6Mbps -> ~266us OnTime
+    // We can just set OffTime to (1/Hz) - small_delta
+    
+    std::string offTimeStr = "ns3::ConstantRandomVariable[Constant=" + std::to_string(newInterval) + "]";
+    
+    for (uint32_t i = 0; i < g_onoffApps.GetN(); i++) {
+        Ptr<OnOffApplication> app = DynamicCast<OnOffApplication>(g_onoffApps.Get(i));
+        if (app) {
+            app->SetAttribute("OffTime", StringValue(offTimeStr));
+        }
+    }
+}
+
+// Helper: Update Tx Power
+void UpdateTxPower(double newPower) {
+    if (std::abs(g_txPower - newPower) < 0.1) return;
+    g_txPower = newPower;
+    
+    for (uint32_t i = 0; i < g_devices.GetN(); i++) {
+        Ptr<WifiNetDevice> device = DynamicCast<WifiNetDevice>(g_devices.Get(i));
+        if (device) {
+            Ptr<WifiPhy> phy = device->GetPhy();
+            phy->SetAttribute("TxPowerStart", DoubleValue(g_txPower));
+            phy->SetAttribute("TxPowerEnd", DoubleValue(g_txPower));
+        }
+    }
 }
 
 double GetAverageCBR() {
@@ -255,11 +325,30 @@ void SimulationStep() {
     }
     
     if (activeNodes > 0) {
-        avgThroughput /= activeNodes;
         avgNeighbors /= activeNodes;
     }
 
     double windowPDR = (windowExpected > 0) ? (double)windowRecv / windowExpected : 0.0;
+    
+
+
+// ... inside SimulationStep ...
+    // DEBUG LOGGING
+    std::cout << "DEBUG: AppSent=" << windowSent << " AppRecv=" << windowRecv 
+              << " PhyTx=" << g_debugPhyTx << " PhyRx=" << g_debugPhyRx 
+              << " RxBegin=" << g_debugPhyRxBegin << " Drop=" << g_debugPhyDrop
+              << " Exp=" << windowExpected << std::endl;
+    
+    // Reset debug counters for next step
+    g_debugPhyTx = 0;
+    g_debugPhyRx = 0;
+    g_debugPhyRxBegin = 0;
+    g_debugPhyDrop = 0;
+    
+    // 4. Calculate Throughput (bps)
+    if (activeNodes > 0) {
+        avgThroughput = (double)windowRecv * 200.0 * 8.0 / g_loggingInterval / activeNodes; 
+    }
     double avgCBR = GetAverageCBR();
     
     // 4. Send State
@@ -301,22 +390,7 @@ void SimulationStep() {
     Simulator::Schedule(Seconds(g_loggingInterval), &SimulationStep);
 }
 
-void UpdateBeaconInterval(double newInterval) {
-    g_beaconInterval = newInterval;
-    // Update logic for OnOff apps...
-    // (Simplified for brevity, same as original script)
-}
 
-void UpdateTxPower(double newPower) {
-    g_txPower = newPower;
-    for (uint32_t i = 0; i < g_devices.GetN(); i++) {
-        Ptr<WifiNetDevice> wifiDev = DynamicCast<WifiNetDevice>(g_devices.Get(i));
-        if (wifiDev) {
-            wifiDev->GetPhy()->SetTxPowerStart(newPower);
-            wifiDev->GetPhy()->SetTxPowerEnd(newPower);
-        }
-    }
-}
 
 int main(int argc, char *argv[]) {
     CommandLine cmd;
@@ -329,9 +403,11 @@ int main(int argc, char *argv[]) {
     // Create fixed pool of nodes
     g_nodes.Create(MAX_NODES);
     
-    // WiFi Setup (Same as before)
-    YansWifiChannelHelper wifiChannel = YansWifiChannelHelper::Default();
+    // WiFi Setup
+    YansWifiChannelHelper wifiChannel;
+    wifiChannel.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
     wifiChannel.AddPropagationLoss("ns3::RangePropagationLossModel", "MaxRange", DoubleValue(300.0));
+    
     YansWifiPhyHelper wifiPhy;
     wifiPhy.SetChannel(wifiChannel.Create());
     wifiPhy.Set("TxPowerStart", DoubleValue(g_txPower));
@@ -340,8 +416,9 @@ int main(int argc, char *argv[]) {
     WifiHelper wifi;
     wifi.SetStandard(WIFI_STANDARD_80211p);
     wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager", "DataMode", StringValue("OfdmRate6MbpsBW10MHz"));
+    
     WifiMacHelper wifiMac;
-    wifiMac.SetType("ns3::AdhocWifiMac");
+    wifiMac.SetType("ns3::AdhocWifiMac"); // Back to standard Adhoc
     g_devices = wifi.Install(wifiPhy, wifiMac, g_nodes);
     
     // Mobility: Constant Position (Updated externally)
@@ -364,7 +441,7 @@ int main(int argc, char *argv[]) {
         
         OnOffHelper onoff("ns3::UdpSocketFactory", InetSocketAddress(Ipv4Address("10.1.255.255"), port));
         onoff.SetAttribute("PacketSize", UintegerValue(200));
-        onoff.SetAttribute("DataRate", DataRateValue(DataRate("160000bps")));
+        onoff.SetAttribute("DataRate", DataRateValue(DataRate("6Mbps"))); // Restore high data rate
         onoff.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=0.002]"));
         onoff.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0.1]")); // Default 10Hz
         g_onoffApps.Add(onoff.Install(g_nodes.Get(i)));
@@ -374,19 +451,21 @@ int main(int argc, char *argv[]) {
     
     // Initialize metrics
     for (uint32_t i = 0; i < g_nodes.GetN(); i++) {
-        g_packetsSent[i] = 0;
-        g_packetsReceived[i] = 0;
-        g_expectedReceptions[i] = 0;
-        g_channelBusyTime[i] = Seconds(0.0);
-        g_lastChannelSampleTime[i] = Seconds(0.0);
-        g_currentWindow[i] = MetricsWindow();
-        g_previousWindow[i] = MetricsWindow();
-        g_currentWindow[i].windowStart = Seconds(0.0);
+        g_previousWindow[i] = g_currentWindow[i];
+        g_currentWindow[i].packetsSent = 0;
+        g_currentWindow[i].packetsReceived = 0;
+        g_currentWindow[i].expectedReceptions = 0;
+        g_currentWindow[i].windowStart = Simulator::Now();
     }
 
     // Connect Traces
     Config::Connect("/NodeList/*/ApplicationList/*/$ns3::OnOffApplication/Tx", MakeCallback(&TxCallback));
     Config::Connect("/NodeList/*/ApplicationList/*/$ns3::PacketSink/Rx", MakeCallback(&RxCallback));
+    Config::Connect("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyTxBegin", MakeCallback(&PhyTxBeginCallback));
+    Config::Connect("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyRxBegin", MakeCallback(&PhyRxBeginCallback));
+    Config::Connect("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyRxEnd", MakeCallback(&PhyRxEndCallback));
+    Config::Connect("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyRxDrop", MakeCallback(&PhyRxDropCallback));
+    Config::Connect("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/MacRxDrop", MakeCallback(&MacRxDropCallback));
     
     // Start Loop
     Simulator::Schedule(Seconds(0.1), &SimulationStep);
