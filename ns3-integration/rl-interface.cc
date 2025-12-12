@@ -36,16 +36,30 @@ void RLInterface::Init(const std::string &addr) {
     NS_LOG_UNCOND("[RLInterface] Connected to " << addr);
 }
 
-void RLInterface::SendState(const std::map<std::string, double> &state) {
+json RLInterface::SendState(const std::map<std::string, double> &state) {
     json jmsg;
     jmsg["type"] = "state";
     jmsg["data"] = state;
 
     std::string data = jmsg.dump();
     zmq::message_t msg(data.begin(), data.end());
+    // std::cout << "[RLInterface] Sending State REQ..." << std::endl;
     m_socket.send(msg, zmq::send_flags::none);
 
-    // NS_LOG_UNCOND("[RLInterface] Sent state: " << data);
+    // Receive Action immediately (Synchronous REQ-REP)
+    zmq::message_t reply;
+    // std::cout << "[RLInterface] Waiting for Action REP..." << std::endl;
+    m_socket.recv(reply, zmq::recv_flags::none);
+    std::string replyStr(static_cast<char *>(reply.data()), reply.size());
+    // std::cout << "[RLInterface] Got Action REP." << std::endl;
+
+    json jreply;
+    try {
+        jreply = json::parse(replyStr);
+    } catch (const std::exception &e) {
+        NS_LOG_UNCOND("[RLInterface] JSON parse error in SendState: " << e.what());
+    }
+    return jreply;
 }
 
 json RLInterface::ReceiveAction() {

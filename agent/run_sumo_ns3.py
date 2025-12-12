@@ -44,7 +44,14 @@ def main():
 
     # 0. Initialize PPO Agent (Inference Mode)
     print(f"[Orchestrator] Loading PPO Agent from {MODEL_PATH}...")
-    agent = DualControlPPOAgent()
+    # Force CPU to avoid CUDA compatibility issues with MX230
+    device = torch.device("cpu")
+    print(f"[Orchestrator] Forcing device: {device}")
+    
+    agent = DualControlPPOAgent(
+        state_dim=10,
+        device=device
+    )
     if os.path.exists(MODEL_PATH):
         agent.load_model(MODEL_PATH)
         print("[Orchestrator] Model loaded successfully!")
@@ -80,7 +87,11 @@ def main():
 
             if msg_type == "get_positions":
                 # Step SUMO
+                import time
+                t0 = time.time()
                 traci.simulationStep()
+                t1 = time.time()
+                # print(f"[Orchestrator] SUMO Step Time: {t1-t0:.4f}s")
                 
                 # Get positions
                 positions = {}
@@ -95,7 +106,7 @@ def main():
                 # Update map for new vehicles
                 for veh_id in active_ids:
                     if veh_id not in main.veh_map:
-                        if main.next_id < 100: # Limit to MAX_NODES in NS-3
+                        if main.next_id < 150: # Limit to MAX_NODES in NS-3
                             main.veh_map[veh_id] = main.next_id
                             main.next_id += 1
                 
@@ -118,17 +129,27 @@ def main():
                 step += 1
 
             elif msg_type == "state":
+                import time
+                start_time = time.time()
+                
                 state_data = data.get("data", {})
                 
+                # Add numVehicles to state (inferred from active mappings)
+                state_data["numVehicles"] = len(positions)
+
                 # Normalize state for agent
                 normalized_state = agent.normalize_state(state_data)
                 
                 # Select Action using PPO Agent (Inference Mode: training=False)
+                # print(f"[Orchestrator] Selecting action...")
                 action_idx, _, _ = agent.select_action(normalized_state, training=False)
+                # print(f"[Orchestrator] Action selected: {action_idx}")
                 action_params = agent.get_action_params(action_idx)
                 
+                elapsed = time.time() - start_time
                 print(f"[Step {step}] State: PDR={state_data.get('PDR',0):.2f} | "
-                      f"Action: Beacon={action_params['beaconHz']}Hz, Tx={action_params['txPower']}dBm")
+                      f"Action: Beacon={action_params['beaconHz']}Hz, Tx={action_params['txPower']}dBm | "
+                      f"NS3 Step Time: {elapsed:.4f}s")
 
                 # Send Action to NS-3
                 response = {"action": action_params}

@@ -19,8 +19,14 @@ public:
   ~RLInterface() override;
 
   void Init(const std::string &addr);
-  void SendState(const std::map<std::string, double> &state);
+  
+  // Send state to agent and get action
+  nlohmann::json SendState(const std::map<std::string, double> &state);
+  
+  // Receive action from agent (Deprecated/Unused if SendState returns action)
   nlohmann::json ReceiveAction();
+  
+  // Send reward to agent
   void SendReward(double reward, bool done);
   
   // NEW: Receive positions from external source (SUMO via Python)

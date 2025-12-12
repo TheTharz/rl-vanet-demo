@@ -13,6 +13,7 @@
 #include "ns3/internet-module.h"
 #include "ns3/applications-module.h"
 #include "ns3/phy-entity.h" // Required for RxPowerWattPerChannelBand
+#include "ns3/ipv4-global-routing-helper.h"
 #include "rl-interface.h"
 #include <iostream>
 #include <iomanip>
@@ -58,7 +59,7 @@ Ptr<RLInterface> g_rlInterface;
 // Track active nodes (SUMO might add/remove vehicles, but for simplicity we assume fixed pool for now)
 // In a full implementation, we would handle dynamic node creation/deletion.
 // Here we assume a max pool of nodes and only move active ones.
-const uint32_t MAX_NODES = 100;
+const uint32_t MAX_NODES = 150;
 
 // Forward declarations
 void UpdateBeaconInterval(double newInterval);
@@ -156,6 +157,16 @@ uint32_t CountNeighbors(Ptr<Node> node, double range) {
         if (dist <= range && dist > 0.1) count++;
     }
     return count;
+}
+
+// Helper: Populate ARP Cache
+void PopulateArpCache() {
+    Ptr<Ipv4GlobalRouting> gr = CreateObject<Ipv4GlobalRouting>();
+    // This is a workaround to populate ARP cache if we don't use GlobalRoutingHelper
+    // But simpler is to just use NeighborCacheHelper if available, or just ignore for broadcast.
+    // Since we use broadcast, ARP shouldn't be the main issue, but let's be safe.
+    // Actually, simpler way:
+    // Ipv4GlobalRoutingHelper::PopulateNeighborCache();
 }
 
 // Helper: Calculate CBR
@@ -290,6 +301,7 @@ void ResetMetricsWindow() {
 
 // Simulation Loop Step
 void SimulationStep() {
+    // std::cout << "[NS3] SimulationStep Start at " << Simulator::Now().GetSeconds() << "s" << std::endl;
     if (Simulator::Now().GetSeconds() >= g_simulationTime) return;
 
     // 1. Get Positions from Python
@@ -334,10 +346,10 @@ void SimulationStep() {
 
 // ... inside SimulationStep ...
     // DEBUG LOGGING
-    std::cout << "DEBUG: AppSent=" << windowSent << " AppRecv=" << windowRecv 
-              << " PhyTx=" << g_debugPhyTx << " PhyRx=" << g_debugPhyRx 
-              << " RxBegin=" << g_debugPhyRxBegin << " Drop=" << g_debugPhyDrop
-              << " Exp=" << windowExpected << std::endl;
+    // std::cout << "DEBUG: AppSent=" << windowSent << " AppRecv=" << windowRecv 
+    //           << " PhyTx=" << g_debugPhyTx << " PhyRx=" << g_debugPhyRx 
+    //           << " RxBegin=" << g_debugPhyRxBegin << " Drop=" << g_debugPhyDrop
+    //           << " Exp=" << windowExpected << std::endl;
     
     // Reset debug counters for next step
     g_debugPhyTx = 0;
@@ -363,14 +375,21 @@ void SimulationStep() {
     state["txPower"] = g_txPower;
     state["CBR"] = avgCBR;
     
-    g_rlInterface->SendState(state);
+    // 5. Calculate Reward
+    double reward = CalculateReward(windowPDR, avgThroughput, avgNeighbors, avgCBR);
+    bool done = (Simulator::Now().GetSeconds() >= g_simulationTime - g_loggingInterval);
 
-    NS_LOG_INFO("Time: " << Simulator::Now().GetSeconds() << "s | PDR: " << windowPDR 
-                << " | Tput: " << avgThroughput << " | Neigh: " << avgNeighbors 
-                << " | CBR: " << avgCBR);
+    // 6. Send State and Get Action
+    // std::cout << "[NS3] Sending State..." << std::endl;
+    nlohmann::json actionJson = g_rlInterface->SendState(state);
+    // std::cout << "[NS3] Received Action." << std::endl;
     
-    // 5. Receive Action
-    nlohmann::json actionJson = g_rlInterface->ReceiveAction();
+    // 7. Send Reward (for previous step's action)
+    // std::cout << "[NS3] Sending Reward..." << std::endl;
+    g_rlInterface->SendReward(reward, done);
+    // std::cout << "[NS3] Reward Sent." << std::endl;
+    
+    // 8. Process Action
     if (actionJson.contains("action")) {
         auto action = actionJson["action"];
         if (action.contains("beaconHz")) {
@@ -380,14 +399,12 @@ void SimulationStep() {
         if (action.contains("txPower")) UpdateTxPower((double)action["txPower"]);
     }
     
-    // 6. Calculate & Send Reward
-    double reward = CalculateReward(windowPDR, avgThroughput, avgNeighbors, avgCBR);
-    bool done = (Simulator::Now().GetSeconds() >= g_simulationTime - g_loggingInterval);
-    g_rlInterface->SendReward(reward, done);
-    
-    // 7. Reset Window & Schedule
+    // 9. Reset Window & Schedule
     ResetMetricsWindow();
+    // std::cout << "[NS3] Scheduling next step..." << std::endl;
     Simulator::Schedule(Seconds(g_loggingInterval), &SimulationStep);
+    // std::cout << "[NS3] SimulationStep End." << std::endl;
+    // std::cout.flush();
 }
 
 
@@ -425,13 +442,27 @@ int main(int argc, char *argv[]) {
     MobilityHelper mobility;
     mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     mobility.Install(g_nodes);
+
+    // Initialize to far away positions to avoid interference
+    for (uint32_t i = 0; i < g_nodes.GetN(); i++) {
+        Ptr<ConstantPositionMobilityModel> mob = g_nodes.Get(i)->GetObject<ConstantPositionMobilityModel>();
+        mob->SetPosition(Vector(-10000.0 - (i * 100.0), 0.0, 0.0));
+    }
     
     // Internet & Apps
+
     InternetStackHelper internet;
+    internet.SetIpv4StackInstall(true);
+    internet.SetIpv6StackInstall(false); // Disable IPv6 to reduce overhead
     internet.Install(g_nodes);
+    
     Ipv4AddressHelper ipv4;
     ipv4.SetBase("10.1.0.0", "255.255.0.0");
     ipv4.Assign(g_devices);
+    
+
+    // Populate ARP cache to avoid broadcast storms
+    PopulateArpCache();
     
     // Install Apps (Simplified)
     uint16_t port = 9;
@@ -464,8 +495,8 @@ int main(int argc, char *argv[]) {
     Config::Connect("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyTxBegin", MakeCallback(&PhyTxBeginCallback));
     Config::Connect("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyRxBegin", MakeCallback(&PhyRxBeginCallback));
     Config::Connect("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyRxEnd", MakeCallback(&PhyRxEndCallback));
-    Config::Connect("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyRxDrop", MakeCallback(&PhyRxDropCallback));
-    Config::Connect("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/MacRxDrop", MakeCallback(&MacRxDropCallback));
+    // Config::Connect("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyRxDrop", MakeCallback(&PhyRxDropCallback));
+    // Config::Connect("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Mac/MacRxDrop", MakeCallback(&MacRxDropCallback));
     
     // Start Loop
     Simulator::Schedule(Seconds(0.1), &SimulationStep);

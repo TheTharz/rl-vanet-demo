@@ -158,7 +158,8 @@ class DualControlPPOAgent:
                  K_epochs=20,             # Number of PPO epochs per update
                  entropy_coef=0.03,      # Entropy coefficient for exploration
                  value_coef=0.5,         # Value loss coefficient
-                 update_timesteps=512):  # Update policy every N timesteps
+                 update_timesteps=512,   # Update policy every N timesteps
+                 device=None):           # Optional device override
         
         self.state_dim = state_dim
         self.gamma = gamma
@@ -188,7 +189,10 @@ class DualControlPPOAgent:
         print(f"[PPO] TxPower options: {self.txpower_options}")
         
         # Device setup
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if device:
+            self.device = device
+        else:
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print(f"[PPO] Using device: {self.device}")
         
         # Create policy network (current policy)
